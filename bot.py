@@ -12,8 +12,6 @@ ADMIN_ID = os.getenv("ADMIN_ID")
 if not TOKEN or not ADMIN_ID:
     raise ValueError("Переменные окружения TOKEN или ADMIN_ID не установлены!")
 
-ADMIN_ID = int(ADMIN_ID)
-
 bot = Bot(TOKEN)
 dp = Dispatcher()
 
@@ -36,7 +34,16 @@ def back_menu_kb():
     kb = ReplyKeyboardMarkup(resize_keyboard=True)
     kb.add(KeyboardButton("🔙 В меню"))
     return kb
+def order_menu_kb():
+    kb = ReplyKeyboardMarkup(resize_keyboard=True)
+    kb.add(KeyboardButton("Получил заказ"), KeyboardButton("🔙 В меню"))
+    return kb
 
+# Удаляем вебхук перед запуском polling
+async def remove_webhook():
+    await bot.delete_webhook()
+    print("Webhook удалён!")
+    
 # Команда /start
 @dp.message(CommandStart())
 async def start(message: types.Message):
