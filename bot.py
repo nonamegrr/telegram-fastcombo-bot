@@ -1,24 +1,23 @@
 import os
 import asyncio
 from aiogram import Bot, Dispatcher, types
-from aiogram.filters import CommandStart
 from aiogram.types import ReplyKeyboardMarkup, KeyboardButton
+from aiogram.filters import CommandStart, Text
 
-# Получаем токен и ID администратора из переменных окружения
+# Получаем токен и ID админа из переменных окружения Railway
 TOKEN = os.getenv("TOKEN")
-ADMIN_ID = os.getenv("ADMIN_ID")
+ADMIN_ID = int(os.getenv("ADMIN_ID"))
 
-# Проверяем, что переменные установлены
 if not TOKEN or not ADMIN_ID:
-    raise ValueError("Переменные окружения TOKEN или ADMIN_ID не установлены!")
+    raise ValueError("TOKEN или ADMIN_ID не установлены!")
 
-bot = Bot(TOKEN)
+bot = Bot(token=TOKEN)
 dp = Dispatcher()
 
-# Хранилище данных пользователей (в памяти)
+# Словарь для хранения данных пользователей
 users = {}
 
-# Функция для главного меню
+# Функции для клавиатур
 def main_menu_kb():
     kb = ReplyKeyboardMarkup(resize_keyboard=True)
     kb.add(
@@ -29,11 +28,11 @@ def main_menu_kb():
     )
     return kb
 
-# Кнопка "В меню"
 def back_menu_kb():
     kb = ReplyKeyboardMarkup(resize_keyboard=True)
     kb.add(KeyboardButton("🔙 В меню"))
     return kb
+
 def order_menu_kb():
     kb = ReplyKeyboardMarkup(resize_keyboard=True)
     kb.add(KeyboardButton("Получил заказ"), KeyboardButton("🔙 В меню"))
@@ -43,123 +42,130 @@ def order_menu_kb():
 async def remove_webhook():
     await bot.delete_webhook()
     print("Webhook удалён!")
-    
-# Команда /start
+
+# Обработчик /start
 @dp.message(CommandStart())
 async def start(message: types.Message):
     uid = message.from_user.id
     if uid not in users:
-        users[uid] = {
-            "i": message.from_user.first_name,
-            "z1": " ",
-            "z2": " ",
-            "z3": " ",
-            "state": None,
-            "n": 0
-        }
+        users[uid] = {"i": message.from_user.first_name, "z1":" ","z2":" ","z3":" ","state":None,"n":0}
     await message.answer(
         "Привет! С чем тебе помочь?\nНе забудь прочитать инструкцию перед началом использования бота!",
         reply_markup=main_menu_kb()
     )
 
-# Инструкция
-@dp.message(lambda message: message.text == "🧾 Инструкция")
+# Обработка кнопок меню
+@dp.message(Text(text="🧾 Инструкция"))
 async def instruction(message: types.Message):
-    text = "📌 Инструкция по использованию бота Fast Combo Clothes 📌\n(тут текст инструкции)"
+    text = """
+📌 Инструкция по использованию бота Fast Combo Clothes 📌
+
+Добро пожаловать! 🛍✨
+1️⃣ Для заказа нажмите "Заказать"
+2️⃣ Администратор проверит наличие и свяжется с вами
+3️⃣ Оплатите и получите заказ
+
+🔙 В меню
+"""
     await message.answer(text, reply_markup=back_menu_kb())
 
-# В меню
-@dp.message(lambda message: message.text == "🔙 В меню")
-async def back_to_menu(message: types.Message):
+@dp.message(Text(text="🔙 В меню"))
+async def back_menu(message: types.Message):
     await start(message)
 
-# Обработка заказов
-@dp.message(lambda message: message.text == "🛒 Заказать")
+@dp.message(Text(text="🛒 Заказать"))
 async def order(message: types.Message):
     uid = message.from_user.id
-    u = users[uid]
-    if u["z1"] == " ":
-        u["state"] = "order_z1"
-    elif u["z2"] == " ":
-        u["state"] = "order_z2"
-    elif u["z3"] == " ":
-        u["state"] = "order_z3"
+    user = users[uid]
+
+    # Проверяем, куда сохранить заказ
+    if user["z1"] == " ":
+        user["state"] = "z1"
+    elif user["z2"] == " ":
+        user["state"] = "z2"
+    elif user["z3"] == " ":
+        user["state"] = "z3"
     else:
-        kb = ReplyKeyboardMarkup(resize_keyboard=True)
-        kb.add(KeyboardButton("📦 Получил заказ"), KeyboardButton("🔙 В меню"))
-        await message.answer("Вы достигли максимального числа заказов.", reply_markup=kb)
-        u["state"] = "remove_order"
+        await message.answer(
+            "Вы достигли максимального количества заказов.\nЕсли один из заказов уже доставлен, выберите «Получил заказ»",
+            reply_markup=order_menu_kb()
+        )
         return
-    await message.answer("Введите номер сета и размер. Если собрали образ сами — напишите номера вещей.")
 
-# Личный кабинет
-@dp.message(lambda message: message.text == "👤 ЛК")
-async def lk(message: types.Message):
-    uid = message.from_user.id
-    u = users[uid]
-    kb = ReplyKeyboardMarkup(resize_keyboard=True)
-    kb.add(KeyboardButton("📦 Получил заказ"), KeyboardButton("🔙 В меню"))
-    text = f"💎 ЛИЧНЫЙ КАБИНЕТ 💎\nИмя: {u['i']}\n\n📦 Мои заказы:\n№1 {u['z1']}\n№2 {u['z2']}\n№3 {u['z3']}"
-    await message.answer(text, reply_markup=kb)
+    await message.answer(
+        "Введите номер сета и размер. Если вы сами собрали образ, напишите номера каждой вещи."
+    )
 
-# Задать вопрос администратору
-@dp.message(lambda message: message.text == "❓ Задать вопрос")
-async def ask(message: types.Message):
-    uid = message.from_user.id
-    users[uid]["state"] = "ask_admin"
-    await message.answer("Напишите ваш вопрос:")
-
-# Получил заказ
-@dp.message(lambda message: message.text == "📦 Получил заказ")
-async def got_order(message: types.Message):
-    uid = message.from_user.id
-    users[uid]["state"] = "remove_order_number"
-    await message.answer("Напишите номер полученного заказа (1–3):")
-
-# Обработка текста от пользователя
+# Получение текста заказа
 @dp.message()
 async def handle_text(message: types.Message):
     uid = message.from_user.id
     if uid not in users:
-        await start(message)
         return
-    u = users[uid]
-    state = u["state"]
+    user = users[uid]
 
-    if state == "order_z1":
-        u["z1"] = message.text
-        u["state"] = None
-        await bot.send_message(ADMIN_ID, f"📦 Новый заказ от {u['i']}:\n{u['z1']}")
-        await message.answer(f"Ваш заказ №1:\n{u['z1']}\n\n💌 Ожидайте ответа администратора!", reply_markup=main_menu_kb())
+    # Если пользователь находится в процессе заказа
+    if user["state"] in ["z1", "z2", "z3"]:
+        user[user["state"]] = message.text
+        order_num = user["state"][-1]  # 'z1' → '1'
+        await bot.send_message(ADMIN_ID, f"Новый заказ от {user['i']}:\n№{order_num} {message.text}")
+        await message.answer(
+            f"Ваш заказ:\n№{order_num} {message.text}\n\n💌 Ожидайте! В ближайшее время вам напишет админ.",
+            reply_markup=main_menu_kb()
+        )
+        user["state"] = None
+        return
 
-    elif state == "order_z2":
-        u["z2"] = message.text
-        u["state"] = None
-        await bot.send_message(ADMIN_ID, f"📦 Новый заказ от {u['i']}:\n{u['z2']}")
-        await message.answer(f"Ваш заказ №2:\n{u['z2']}", reply_markup=main_menu_kb())
-
-    elif state == "order_z3":
-        u["z3"] = message.text
-        u["state"] = None
-        await bot.send_message(ADMIN_ID, f"📦 Новый заказ от {u['i']}:\n{u['z3']}")
-        await message.answer(f"Ваш заказ №3:\n{u['z3']}", reply_markup=main_menu_kb())
-
-    elif state == "remove_order_number":
+    # Получение номера полученного заказа
+    if user["state"] == "received":
         if message.text in ["1","2","3"]:
-            idx = int(message.text)
-            u[f"z{idx}"] = " "
-            u["state"] = None
+            z_key = f"z{message.text}"
+            user[z_key] = " "
             await message.answer("💌 Спасибо за покупку!", reply_markup=main_menu_kb())
+            user["state"] = None
         else:
-            await message.answer("Введите число от 1 до 3.")
+            await message.answer("Выберете цифру от 1 до 3")
+        return
 
-    elif state == "ask_admin":
-        await bot.send_message(ADMIN_ID, f"❓ Вопрос от {u['i']}:\n{message.text}")
-        u["state"] = None
-        await message.answer("💌 Мы передали ваш вопрос администратору!", reply_markup=back_menu_kb())
+    # Задать вопрос
+    if user.get("state") == "ask":
+        await bot.send_message(ADMIN_ID, f"Вопрос от {user['i']}:\n{message.text}")
+        await message.answer("💌 Мы передали ваш вопрос, ожидайте ответ", reply_markup=main_menu_kb())
+        user["state"] = None
+
+# Личный кабинет
+@dp.message(Text(text="👤 ЛК"))
+async def my_orders(message: types.Message):
+    uid = message.from_user.id
+    user = users[uid]
+    text = f"""
+💎 ЛИЧНЫЙ КАБИНЕТ 💎
+Имя: {user['i']}
+
+📦 Мои заказы:
+№1 {user['z1']}
+№2 {user['z2']}
+№3 {user['z3']}
+"""
+    await message.answer(text, reply_markup=order_menu_kb())
+
+# Кнопка "Получил заказ"
+@dp.message(Text(text="Получил заказ"))
+async def received_order(message: types.Message):
+    uid = message.from_user.id
+    users[uid]["state"] = "received"
+    await message.answer("Напишите номер полученного заказа (1-3)")
+
+# Кнопка "Задать вопрос"
+@dp.message(Text(text="❓ Задать вопрос"))
+async def ask_question(message: types.Message):
+    uid = message.from_user.id
+    users[uid]["state"] = "ask"
+    await message.answer("Задайте ваш вопрос")
 
 # Запуск бота
 async def main():
+    await remove_webhook()  # удаляем старый вебхук
     await dp.start_polling(bot)
 
 if __name__ == "__main__":
