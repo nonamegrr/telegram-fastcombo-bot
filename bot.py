@@ -3,8 +3,8 @@ from aiogram import Bot, Dispatcher, F, types
 from aiogram.filters import CommandStart
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 
-TOKEN = "PASTE_YOUR_TOKEN_HERE"
-ADMIN_ID = 123456789
+TOKEN = os.getenv("TOKEN")
+ADMIN_ID = int(os.getenv("ADMIN_ID"))
 
 bot = Bot(TOKEN)
 dp = Dispatcher()
