@@ -3,7 +3,6 @@ import asyncio
 from aiogram import Bot, Dispatcher, types
 from aiogram.types import ReplyKeyboardMarkup, KeyboardButton
 from aiogram.filters import CommandStart
-from aiogram.filters.text import Text  # <-- исправлено
 
 # Получаем токен и ID админа из переменных окружения Railway
 TOKEN = os.getenv("TOKEN")
@@ -44,7 +43,7 @@ async def remove_webhook():
     await bot.delete_webhook()
     print("Webhook удалён!")
 
-# Обработчик /start
+# /start
 @dp.message(CommandStart())
 async def start(message: types.Message):
     uid = message.from_user.id
@@ -55,8 +54,8 @@ async def start(message: types.Message):
         reply_markup=main_menu_kb()
     )
 
-# Обработка кнопок меню
-@dp.message(Text(text="🧾 Инструкция"))
+# 🧾 Инструкция
+@dp.message(lambda m: m.text == "🧾 Инструкция")
 async def instruction(message: types.Message):
     text = """
 📌 Инструкция по использованию бота Fast Combo Clothes 📌
@@ -70,16 +69,17 @@ async def instruction(message: types.Message):
 """
     await message.answer(text, reply_markup=back_menu_kb())
 
-@dp.message(Text(text="🔙 В меню"))
+# 🔙 В меню
+@dp.message(lambda m: m.text == "🔙 В меню")
 async def back_menu(message: types.Message):
     await start(message)
 
-@dp.message(Text(text="🛒 Заказать"))
+# 🛒 Заказать
+@dp.message(lambda m: m.text == "🛒 Заказать")
 async def order(message: types.Message):
     uid = message.from_user.id
     user = users[uid]
 
-    # Проверяем, куда сохранить заказ
     if user["z1"] == " ":
         user["state"] = "z1"
     elif user["z2"] == " ":
@@ -97,7 +97,7 @@ async def order(message: types.Message):
         "Введите номер сета и размер. Если вы сами собрали образ, напишите номера каждой вещи."
     )
 
-# Получение текста заказа
+# Получение текста заказа и других сообщений
 @dp.message()
 async def handle_text(message: types.Message):
     uid = message.from_user.id
@@ -105,10 +105,10 @@ async def handle_text(message: types.Message):
         return
     user = users[uid]
 
-    # Если пользователь находится в процессе заказа
+    # Заказ
     if user["state"] in ["z1", "z2", "z3"]:
         user[user["state"]] = message.text
-        order_num = user["state"][-1]  # 'z1' → '1'
+        order_num = user["state"][-1]
         await bot.send_message(ADMIN_ID, f"Новый заказ от {user['i']}:\n№{order_num} {message.text}")
         await message.answer(
             f"Ваш заказ:\n№{order_num} {message.text}\n\n💌 Ожидайте! В ближайшее время вам напишет админ.",
@@ -117,7 +117,7 @@ async def handle_text(message: types.Message):
         user["state"] = None
         return
 
-    # Получение номера полученного заказа
+    # Получил заказ
     if user["state"] == "received":
         if message.text in ["1","2","3"]:
             z_key = f"z{message.text}"
@@ -134,8 +134,8 @@ async def handle_text(message: types.Message):
         await message.answer("💌 Мы передали ваш вопрос, ожидайте ответ", reply_markup=main_menu_kb())
         user["state"] = None
 
-# Личный кабинет
-@dp.message(Text(text="👤 ЛК"))
+# 👤 ЛК
+@dp.message(lambda m: m.text == "👤 ЛК")
 async def my_orders(message: types.Message):
     uid = message.from_user.id
     user = users[uid]
@@ -150,15 +150,15 @@ async def my_orders(message: types.Message):
 """
     await message.answer(text, reply_markup=order_menu_kb())
 
-# Кнопка "Получил заказ"
-@dp.message(Text(text="Получил заказ"))
+# Получил заказ
+@dp.message(lambda m: m.text == "Получил заказ")
 async def received_order(message: types.Message):
     uid = message.from_user.id
     users[uid]["state"] = "received"
     await message.answer("Напишите номер полученного заказа (1-3)")
 
-# Кнопка "Задать вопрос"
-@dp.message(Text(text="❓ Задать вопрос"))
+# Задать вопрос
+@dp.message(lambda m: m.text == "❓ Задать вопрос")
 async def ask_question(message: types.Message):
     uid = message.from_user.id
     users[uid]["state"] = "ask"
