@@ -19,7 +19,7 @@ users = {}
 
 # Функции для клавиатур
 def main_menu_kb():
-    kb = ReplyKeyboardMarkup(resize_keyboard=True)
+    kb = ReplyKeyboardMarkup(keyboard=[], resize_keyboard=True)
     kb.add(
         KeyboardButton("🧾 Инструкция"),
         KeyboardButton("🛒 Заказать"),
@@ -29,12 +29,12 @@ def main_menu_kb():
     return kb
 
 def back_menu_kb():
-    kb = ReplyKeyboardMarkup(resize_keyboard=True)
+    kb = ReplyKeyboardMarkup(keyboard=[], resize_keyboard=True)
     kb.add(KeyboardButton("🔙 В меню"))
     return kb
 
 def order_menu_kb():
-    kb = ReplyKeyboardMarkup(resize_keyboard=True)
+    kb = ReplyKeyboardMarkup(keyboard=[], resize_keyboard=True)
     kb.add(KeyboardButton("Получил заказ"), KeyboardButton("🔙 В меню"))
     return kb
 
