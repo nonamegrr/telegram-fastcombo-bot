@@ -17,33 +17,34 @@ dp = Dispatcher()
 # Словарь для хранения данных пользователей
 users = {}
 
-# Функции для клавиатур
+# --- Клавиатуры ---
 def main_menu_kb():
-    kb = ReplyKeyboardMarkup(keyboard=[], resize_keyboard=True)
-    kb.add(
-        KeyboardButton("🧾 Инструкция"),
-        KeyboardButton("🛒 Заказать"),
-        KeyboardButton("👤 ЛК"),
-        KeyboardButton("❓ Задать вопрос")
+    return ReplyKeyboardMarkup(
+        keyboard=[
+            [KeyboardButton("🧾 Инструкция"), KeyboardButton("🛒 Заказать")],
+            [KeyboardButton("👤 ЛК"), KeyboardButton("❓ Задать вопрос")]
+        ],
+        resize_keyboard=True
     )
-    return kb
 
 def back_menu_kb():
-    kb = ReplyKeyboardMarkup(keyboard=[], resize_keyboard=True)
-    kb.add(KeyboardButton("🔙 В меню"))
-    return kb
+    return ReplyKeyboardMarkup(
+        keyboard=[[KeyboardButton("🔙 В меню")]],
+        resize_keyboard=True
+    )
 
 def order_menu_kb():
-    kb = ReplyKeyboardMarkup(keyboard=[], resize_keyboard=True)
-    kb.add(KeyboardButton("Получил заказ"), KeyboardButton("🔙 В меню"))
-    return kb
+    return ReplyKeyboardMarkup(
+        keyboard=[[KeyboardButton("Получил заказ"), KeyboardButton("🔙 В меню")]],
+        resize_keyboard=True
+    )
 
 # Удаляем вебхук перед запуском polling
 async def remove_webhook():
     await bot.delete_webhook()
     print("Webhook удалён!")
 
-# /start
+# --- /start ---
 @dp.message(CommandStart())
 async def start(message: types.Message):
     uid = message.from_user.id
@@ -54,7 +55,7 @@ async def start(message: types.Message):
         reply_markup=main_menu_kb()
     )
 
-# 🧾 Инструкция
+# --- Инструкция ---
 @dp.message(lambda m: m.text == "🧾 Инструкция")
 async def instruction(message: types.Message):
     text = """
@@ -69,12 +70,12 @@ async def instruction(message: types.Message):
 """
     await message.answer(text, reply_markup=back_menu_kb())
 
-# 🔙 В меню
+# --- В меню ---
 @dp.message(lambda m: m.text == "🔙 В меню")
 async def back_menu(message: types.Message):
     await start(message)
 
-# 🛒 Заказать
+# --- Заказать ---
 @dp.message(lambda m: m.text == "🛒 Заказать")
 async def order(message: types.Message):
     uid = message.from_user.id
@@ -97,7 +98,7 @@ async def order(message: types.Message):
         "Введите номер сета и размер. Если вы сами собрали образ, напишите номера каждой вещи."
     )
 
-# Получение текста заказа и других сообщений
+# --- Получение текста заказов и сообщений ---
 @dp.message()
 async def handle_text(message: types.Message):
     uid = message.from_user.id
@@ -134,7 +135,7 @@ async def handle_text(message: types.Message):
         await message.answer("💌 Мы передали ваш вопрос, ожидайте ответ", reply_markup=main_menu_kb())
         user["state"] = None
 
-# 👤 ЛК
+# --- ЛК ---
 @dp.message(lambda m: m.text == "👤 ЛК")
 async def my_orders(message: types.Message):
     uid = message.from_user.id
@@ -150,21 +151,21 @@ async def my_orders(message: types.Message):
 """
     await message.answer(text, reply_markup=order_menu_kb())
 
-# Получил заказ
+# --- Получил заказ ---
 @dp.message(lambda m: m.text == "Получил заказ")
 async def received_order(message: types.Message):
     uid = message.from_user.id
     users[uid]["state"] = "received"
     await message.answer("Напишите номер полученного заказа (1-3)")
 
-# Задать вопрос
+# --- Задать вопрос ---
 @dp.message(lambda m: m.text == "❓ Задать вопрос")
 async def ask_question(message: types.Message):
     uid = message.from_user.id
     users[uid]["state"] = "ask"
     await message.answer("Задайте ваш вопрос")
 
-# Запуск бота
+# --- Запуск бота ---
 async def main():
     await remove_webhook()  # удаляем старый вебхук
     await dp.start_polling(bot)
