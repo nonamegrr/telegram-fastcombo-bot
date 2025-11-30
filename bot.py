@@ -2,7 +2,8 @@ import os
 import asyncio
 from aiogram import Bot, Dispatcher, types
 from aiogram.types import ReplyKeyboardMarkup, KeyboardButton
-from aiogram.filters import CommandStart, Text
+from aiogram.filters import CommandStart
+from aiogram.filters.text import Text  # <-- исправлено
 
 # Получаем токен и ID админа из переменных окружения Railway
 TOKEN = os.getenv("TOKEN")
